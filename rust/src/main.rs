@@ -35,7 +35,7 @@ struct Result {
     language: String,
     limit: usize,
     primes_count: usize,
-    time_seconds: f64,
+    time_seconds: String, // Изменено с f64 на String
 }
 
 fn main() {
@@ -64,7 +64,8 @@ fn main() {
         language: "Rust".to_string(),
         limit,
         primes_count: count,
-        time_seconds: duration.as_secs_f64(),
+        // Время форматируется в строку с 9 знаками после запятой
+        time_seconds: format!("{:.9}", duration.as_secs_f64()),
     };
 
     match serde_json::to_string(&result) {

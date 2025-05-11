@@ -89,8 +89,6 @@ def generate_report():
     except Exception as e:
         print(f"Ошибка при сохранении графика: {e}")
         return
-
-    # --- Обновление README.md ---
     try:
         with open(readme_file_path, 'r', encoding='utf-8') as f:
             readme_content = f.readlines()
@@ -102,7 +100,6 @@ def generate_report():
     section_found = False
     in_old_plot_section = False
 
-    # Новое имя файла для графика в README
     new_chart_filename_in_readme = os.path.basename(chart_file_path)
 
     for line in readme_content:
@@ -111,21 +108,17 @@ def generate_report():
             new_readme_content.append("\nНиже приведен график зависимости времени выполнения от предела N для разных языков:\n")
             new_readme_content.append(f"![Сравнение производительности по пределам N]({new_chart_filename_in_readme})\n\n")
             section_found = True
-            in_old_plot_section = True  # Начинаем пропускать старый контент (график и таблицу)
+            in_old_plot_section = True
             continue
         elif in_old_plot_section:
-            # Пропускаем старую ссылку на диаграмму и старую таблицу
             if line.strip().startswith("![") or line.strip().startswith("|"):
                 continue
             else:
-                # Если строка не является частью старого графика или таблицы,
-                # заканчиваем пропуск и добавляем эту строку.
                 in_old_plot_section = False
                 new_readme_content.append(line)
         else:
             new_readme_content.append(line)
 
-    # Если заголовок для секции не был найден, добавляем его и график в конец файла
     if not section_found:
         new_readme_content.append("\n## Сравнение производительности (Решето Эратосфена)\n")
         new_readme_content.append("\nНиже приведен график зависимости времени выполнения от предела N для разных языков:\n")
@@ -138,5 +131,25 @@ def generate_report():
     except Exception as e:
         print(f"Ошибка при обновлении README.md: {e}")
 
+
 if __name__ == '__main__':
     generate_report()
+    def remove_test_files():
+
+        result_files = glob.glob(os.path.join(script_dir, 'test_results-*.json'))
+        
+        if not result_files:
+            print("No test result files found to remove.")
+            return
+        
+        file_count = 0
+        for file_path in result_files:
+            try:
+                os.remove(file_path)
+                file_count += 1
+                print(f"Removed: {file_path}")
+            except Exception as e:
+                print(f"Error removing file {file_path}: {e}")
+        
+        print(f"Successfully removed {file_count} test result files.")
+    remove_test_files()

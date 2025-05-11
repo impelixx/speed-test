@@ -39,10 +39,10 @@ func sieveOfEratosthenes(limit int) []int {
 
 // Result struct for JSON marshalling
 type Result struct {
-	Language    string  `json:"language"`
-	Limit       int     `json:"limit"`
-	PrimesCount int     `json:"primes_count"`
-	TimeSeconds float64 `json:"time_seconds"`
+	Language    string `json:"language"`
+	Limit       int    `json:"limit"`
+	PrimesCount int    `json:"primes_count"`
+	TimeSeconds string `json:"time_seconds"` // Изменено с float64 на string
 }
 
 func main() {
@@ -68,7 +68,8 @@ func main() {
 		Language:    "Go",
 		Limit:       limit,
 		PrimesCount: count,
-		TimeSeconds: duration.Seconds(),
+		// Время форматируется в строку с 9 знаками после запятой
+		TimeSeconds: fmt.Sprintf("%.9f", duration.Seconds()),
 	}
 
 	jsonOutput, err := json.Marshal(result)
