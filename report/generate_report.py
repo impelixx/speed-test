@@ -100,13 +100,18 @@ def generate_report():
     section_found = False
     in_old_plot_section = False
 
-    new_chart_filename_in_readme = os.path.basename(chart_file_path)
+    # Определяем корректный относительный путь к графику из корневого README.md
+    report_dir_name = os.path.basename(script_dir) # Должно быть "report"
+    actual_chart_filename = os.path.basename(chart_file_path) # Имя файла графика
+    chart_path_for_readme = os.path.join(report_dir_name, actual_chart_filename)
+    # Гарантируем использование forward slashes для веб-совместимости
+    chart_path_for_readme = chart_path_for_readme.replace(os.sep, '/')
 
     for line in readme_content:
         if line.strip() == "## Сравнение производительности (Решето Эратосфена)":
             new_readme_content.append(line)
             new_readme_content.append("\nНиже приведен график зависимости времени выполнения от предела N для разных языков:\n")
-            new_readme_content.append(f"![Сравнение производительности по пределам N]({new_chart_filename_in_readme})\n\n")
+            new_readme_content.append(f"![Сравнение производительности по пределам N]({chart_path_for_readme})\n\n")
             section_found = True
             in_old_plot_section = True
             continue
@@ -122,12 +127,12 @@ def generate_report():
     if not section_found:
         new_readme_content.append("\n## Сравнение производительности (Решето Эратосфена)\n")
         new_readme_content.append("\nНиже приведен график зависимости времени выполнения от предела N для разных языков:\n")
-        new_readme_content.append(f"![Сравнение производительности по пределам N]({new_chart_filename_in_readme})\n\n")
+        new_readme_content.append(f"![Сравнение производительности по пределам N]({chart_path_for_readme})\n\n")
 
     try:
         with open(readme_file_path, 'w', encoding='utf-8') as f:
             f.writelines(new_readme_content)
-        print(f"README.md обновлен новым графиком: {new_chart_filename_in_readme}")
+        print(f"README.md обновлен новым графиком: {chart_path_for_readme}")
     except Exception as e:
         print(f"Ошибка при обновлении README.md: {e}")
 

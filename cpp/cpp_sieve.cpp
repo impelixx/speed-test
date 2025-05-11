@@ -3,8 +3,8 @@
 #include <cmath>
 #include <chrono>
 #include <string>
-#include <cstdlib> // Для std::exit
-#include <iomanip> // Для std::fixed и std::setprecision
+#include <cstdlib>
+#include <iomanip>
 
 std::vector<int> sieveOfEratosthenes(int limit) {
     std::vector<int> primes;

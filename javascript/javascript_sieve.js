@@ -28,13 +28,13 @@ if (nArg) {
         process.exit(1);
     }
 } else {
-    limit = 2000000; // Значение по умолчанию
+    limit = 2000000;
 }
 
 const startTime = process.hrtime();
 const primeNumbers = sieveOfEratosthenes(limit);
 const diff = process.hrtime(startTime);
-const timeTaken = diff[0] + diff[1] / 1e9; // seconds
+const timeTaken = diff[0] + diff[1] / 1e9;
 
 const result = {
     language: "JavaScript",
