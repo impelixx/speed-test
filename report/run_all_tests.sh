@@ -16,8 +16,6 @@ languages_compilers=(
     "go:go_sieve:go:Dockerfile"
     "rust:app:rust:Dockerfile"
     "dart:dart_sieve:dart:Dockerfile"
-    "kotlin:KotlinSieve:kotlin:Dockerfile"
-    "R:r_sieve:R:Dockerfile"
     "ruby:ruby_sieve:ruby:Dockerfile"
 )
 

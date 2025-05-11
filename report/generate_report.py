@@ -61,6 +61,30 @@ def generate_performance_chart(results: List[Dict], limit: int):
     plt.savefig('performance_over_limits_chart.png')
     plt.close()
 
+def generate_speed_chart(df, chart_file_path):
+    """Генерирует график зависимости скорости (число простых/сек) от лимита для каждого языка."""
+    plt.figure(figsize=(12, 8))
+    languages = df['language'].unique()
+    for lang in sorted(languages):
+        lang_df = df[df['language'] == lang].sort_values(by='limit')
+        # Только те точки, где есть primes_count
+        if not lang_df.empty and 'primes_count' in lang_df:
+            lang_df = lang_df.dropna(subset=['primes_count', 'time_seconds'])
+            if not lang_df.empty:
+                speed = lang_df['primes_count'] / lang_df['time_seconds']
+                plt.plot(lang_df['limit'], speed, marker='o', linestyle='-', label=lang)
+    plt.xlabel('Предел N для Решета Эратосфена (логарифмическая шкала)')
+    plt.ylabel('Скорость (число простых/сек)')
+    plt.title('Сравнение производительности: Скорость vs. Предел N')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.legend(title='Язык программирования')
+    plt.grid(True, which="both", ls="-", alpha=0.5)
+    plt.tight_layout()
+    plt.savefig(chart_file_path)
+    plt.close()
+    print(f"График скорости сохранен в {chart_file_path}")
+
 def generate_report():
     """
     Собирает данные из всех файлов test_results-*.json,
@@ -86,7 +110,7 @@ def generate_report():
             with open(file_path, 'r', encoding='utf-8') as f:
                 data_from_file = json.load(f)
         except FileNotFoundError:
-            print(f"Ошибка: Файл {file_path} не найден во время чтения.")  # Маловероятно, т.к. glob его нашел
+            print(f"Ошибка: Файл {file_path} не найден во время чтения.")
             continue
         except json.JSONDecodeError:
             print(f"Ошибка: Не удалось декодировать JSON из файла {file_path}.")
@@ -94,10 +118,9 @@ def generate_report():
 
         for entry in data_from_file:
             if 'error' not in entry and all(k in entry for k in ['language', 'time_seconds']):
-                entry['limit'] = sieve_limit  # Добавляем предел N к каждой записи
+                entry['limit'] = sieve_limit  # Лимит всегда из имени файла
                 all_data.append(entry)
             else:
-                # Если в записи есть 'limit' из run_all_tests.sh, он будет перезаписан, что нормально
                 print(f"Пропуск записи с ошибкой или отсутствующими ключами в файле {file_path}: {entry.get('language', 'N/A')} для предела {entry.get('limit', sieve_limit)}")
 
     if not all_data:
@@ -105,30 +128,27 @@ def generate_report():
         return
 
     df = pd.DataFrame(all_data)
-
-    # Преобразование типов на случай, если что-то пошло не так
     df['time_seconds'] = pd.to_numeric(df['time_seconds'], errors='coerce')
     df['limit'] = pd.to_numeric(df['limit'], errors='coerce')
+    if 'primes_count' in df.columns:
+        df['primes_count'] = pd.to_numeric(df['primes_count'], errors='coerce')
     df.dropna(subset=['time_seconds', 'limit', 'language'], inplace=True)
 
     # --- Генерация линейного графика ---
     plt.figure(figsize=(12, 8))
-    
     languages = df['language'].unique()
-    for lang in sorted(languages):  # Сортируем языки для консистентного порядка в легенде
+    for lang in sorted(languages):
         lang_df = df[df['language'] == lang].sort_values(by='limit')
         if not lang_df.empty:
             plt.plot(lang_df['limit'], lang_df['time_seconds'], marker='o', linestyle='-', label=lang)
-
     plt.xlabel('Предел N для Решета Эратосфена (логарифмическая шкала)')
     plt.ylabel('Время выполнения (секунды, логарифмическая шкала)')
     plt.title('Сравнение производительности: Время выполнения vs. Предел N')
     plt.xscale('log')
     plt.yscale('log')
     plt.legend(title='Язык программирования')
-    plt.grid(True, which="both", ls="-", alpha=0.5)  # Добавлена сетка для лучшей читаемости
+    plt.grid(True, which="both", ls="-", alpha=0.5)
     plt.tight_layout()
-
     try:
         plt.savefig(chart_file_path)
         print(f"График сохранен в {chart_file_path}")
@@ -145,13 +165,9 @@ def generate_report():
     new_readme_content = []
     section_found = False
     in_old_plot_section = False
-
-    # Определяем корректный относительный путь к графику из корневого README.md
-    report_dir_name = os.path.basename(script_dir) # Должно быть "report"
-    actual_chart_filename = os.path.basename(chart_file_path) # Имя файла графика
-    chart_path_for_readme = os.path.join(report_dir_name, actual_chart_filename)
-    # Гарантируем использование forward slashes для веб-совместимости
-    chart_path_for_readme = chart_path_for_readme.replace(os.sep, '/')
+    report_dir_name = os.path.basename(script_dir)
+    actual_chart_filename = os.path.basename(chart_file_path)
+    chart_path_for_readme = os.path.join(report_dir_name, actual_chart_filename).replace(os.sep, '/')
 
     for line in readme_content:
         if line.strip() == "## Сравнение производительности (Решето Эратосфена)":
@@ -175,14 +191,23 @@ def generate_report():
         new_readme_content.append("\nНиже приведен график зависимости времени выполнения от предела N для разных языков:\n")
         new_readme_content.append(f"![Сравнение производительности по пределам N]({chart_path_for_readme})\n\n")
 
+    if 'primes_count' in df.columns:
+        speed_chart_path = os.path.join(script_dir, 'speed_over_limits_chart.png')
+        generate_speed_chart(df, speed_chart_path)
+    else:
+        speed_chart_path = None
+
+    if speed_chart_path:
+        chart_path_for_readme2 = os.path.join(report_dir_name, os.path.basename(speed_chart_path)).replace(os.sep, '/')
+        new_readme_content.append("\nГрафик зависимости скорости (число простых/сек) от предела N для разных языков:\n")
+        new_readme_content.append(f"![Сравнение скорости по пределам N]({chart_path_for_readme2})\n\n")
+
     try:
         with open(readme_file_path, 'w', encoding='utf-8') as f:
             f.writelines(new_readme_content)
         print(f"README.md обновлен новым графиком: {chart_path_for_readme}")
     except Exception as e:
         print(f"Ошибка при обновлении README.md: {e}")
-
-    # Process results for limit 1000
     limit = 1000
     results = load_test_results(limit)
     
@@ -190,10 +215,7 @@ def generate_report():
         print(f"No test results found for limit {limit}!")
         return
     
-    # Generate performance chart
     generate_performance_chart(results, limit)
-    
-    # Generate and update ranking table
     generate_ranking.main()
     
     # Clean up JSON files
