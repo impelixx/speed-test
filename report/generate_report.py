@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import glob  # Добавлен glob
+import numpy as np
+from typing import Dict, List
+import generate_ranking
 
 # Пути определяются относительно директории, в которой находится скрипт.
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +17,49 @@ readme_file_path = os.path.join(script_dir, '..', 'README.md')
 
 # Убедимся, что директория для выходных файлов существует
 os.makedirs(script_dir, exist_ok=True)
+
+def load_test_results(limit: int) -> List[Dict]:
+    """Load test results for a specific limit."""
+    filename = f"test_results-{limit}.json"
+    if not os.path.exists(filename):
+        return []
+    
+    with open(filename, 'r') as f:
+        return json.load(f)
+
+def generate_performance_chart(results: List[Dict], limit: int):
+    """Generate performance comparison chart."""
+    # Filter out failed tests
+    valid_results = [r for r in results if 'time_seconds' in r and not r.get('error')]
+    
+    # Sort by time
+    sorted_results = sorted(valid_results, key=lambda x: float(x['time_seconds']))
+    
+    # Prepare data for plotting
+    languages = [r['language'] for r in sorted_results]
+    times = [float(r['time_seconds']) for r in sorted_results]
+    
+    # Create the plot
+    plt.figure(figsize=(12, 6))
+    bars = plt.bar(languages, times)
+    
+    # Customize the plot
+    plt.title(f'Сравнение производительности (предел N = {limit})')
+    plt.xlabel('Язык программирования')
+    plt.ylabel('Время выполнения (с)')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    
+    # Add value labels on top of bars
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2., height,
+                f'{height:.9f}',
+                ha='center', va='bottom')
+    
+    # Save the plot
+    plt.savefig('performance_over_limits_chart.png')
+    plt.close()
 
 def generate_report():
     """
@@ -136,6 +182,26 @@ def generate_report():
     except Exception as e:
         print(f"Ошибка при обновлении README.md: {e}")
 
+    # Process results for limit 1000
+    limit = 1000
+    results = load_test_results(limit)
+    
+    if not results:
+        print(f"No test results found for limit {limit}!")
+        return
+    
+    # Generate performance chart
+    generate_performance_chart(results, limit)
+    
+    # Generate and update ranking table
+    generate_ranking.main()
+    
+    # Clean up JSON files
+    for file in os.listdir('.'):
+        if file.startswith('test_results-') and file.endswith('.json'):
+            os.remove(file)
+    
+    print("Report generation completed!")
 
 if __name__ == '__main__':
     generate_report()

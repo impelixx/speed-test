@@ -1,0 +1,5 @@
+FROM denoland/deno:latest
+
+WORKDIR /app
+COPY javascript_sieve.js .
+ENTRYPOINT ["deno", "run", "--allow-env", "javascript_sieve.js"]

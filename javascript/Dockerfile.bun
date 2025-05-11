@@ -1,0 +1,8 @@
+FROM oven/bun:latest
+
+WORKDIR /app
+COPY javascript_sieve.js .
+
+# JS_RUNTIME_NAME будет передан через 'docker run --env JS_RUNTIME_NAME=JavaScript-Bun'
+# или установлен в run_all_tests.sh
+ENTRYPOINT ["bun", "run", "javascript_sieve.js"]

@@ -1,0 +1,19 @@
+FROM debian:bullseye-slim
+
+# Install Clang and required dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    clang \
+    libc++-dev \
+    libc++abi-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY cpp_sieve.cpp .
+
+# Compile with Clang using libc++
+RUN clang++ -O3 -stdlib=libc++ -std=c++17 -o cpp_sieve_clang cpp_sieve.cpp
+
+ENV CPP_COMPILER_NAME="C++-Clang"
+ENTRYPOINT ["./cpp_sieve_clang"]

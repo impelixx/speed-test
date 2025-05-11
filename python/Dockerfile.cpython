@@ -1,0 +1,9 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+COPY sieve.py .
+
+# Install dependencies
+RUN pip install --no-cache-dir json5
+
+ENTRYPOINT ["python", "sieve.py"] 
