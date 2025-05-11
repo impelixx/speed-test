@@ -32,11 +32,11 @@ public class JavaSieve {
             try {
                 limit = Integer.parseInt(args[0]);
                 if (limit < 0) {
-                    System.err.println("Ошибка: Аргумент должен быть положительным целым числом.");
+                    System.out.println("{ \"error\": \"Аргумент должен быть положительным целым числом.\" }");
                     return;
                 }
             } catch (NumberFormatException e) {
-                System.err.println("Ошибка: Аргумент должен быть целым числом.");
+                System.out.println("{ \"error\": \"Аргумент должен быть целым числом.\" }");
                 return;
             }
         } else {
@@ -46,10 +46,11 @@ public class JavaSieve {
         long startTime = System.nanoTime();
         List<Integer> primeNumbers = sieveOfEratosthenes(limit);
         long endTime = System.nanoTime();
-        long timeTaken = endTime - startTime;
+        double timeTaken = (endTime - startTime) / 1_000_000_000.0;
         int count = primeNumbers.size();
-
-        System.out.println("Java Sieve up to " + limit + ": " + count + " primes");
-        System.out.printf("Time taken: %.6f seconds%n", timeTaken / 1_000_000_000.0);
+        String jsonResult = String.format(java.util.Locale.US,
+                                        "{ \"language\": \"Java\", \"limit\": %d, \"primes_count\": %d, \"time_seconds\": %.6f }",
+                                        limit, count, timeTaken);
+        System.out.println(jsonResult);
     }
 }

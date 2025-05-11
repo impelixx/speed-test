@@ -4,6 +4,7 @@
 #include <chrono>
 #include <string>
 #include <cstdlib> // Для std::exit
+#include <iomanip> // Для std::fixed и std::setprecision
 
 std::vector<int> sieveOfEratosthenes(int limit) {
     std::vector<int> primes;
@@ -32,14 +33,14 @@ int main(int argc, char *argv[]) {
         try {
             limit = std::stoi(argv[1]);
             if (limit < 0) {
-                 std::cerr << "Ошибка: Аргумент должен быть положительным целым числом." << std::endl;
+                 std::cout << "{ \"error\": \"Аргумент должен быть положительным целым числом.\" }" << std::endl;
                  return 1;
             }
         } catch (const std::invalid_argument& ia) {
-            std::cerr << "Ошибка: Аргумент должен быть целым числом." << std::endl;
+            std::cout << "{ \"error\": \"Аргумент должен быть целым числом.\" }" << std::endl;
             return 1;
         } catch (const std::out_of_range& oor) {
-            std::cerr << "Ошибка: Аргумент вне допустимого диапазона." << std::endl;
+            std::cout << "{ \"error\": \"Аргумент вне допустимого диапазона.\" }" << std::endl;
             return 1;
         }
     } else {
@@ -52,9 +53,16 @@ int main(int argc, char *argv[]) {
 
     std::chrono::duration<double> diff = end - start;
     int count = prime_numbers.size();
+    double time_taken_seconds = diff.count();
 
-    std::cout << "C++ Sieve up to " << limit << ": " << count << " primes" << std::endl;
-    std::cout << "Time taken: " << std::fixed << diff.count() << " seconds" << std::endl;
+    // Формируем JSON строку вручную
+    std::cout << std::fixed << std::setprecision(6);
+    std::cout << "{ "
+              << "\"language\": \"C++\", "
+              << "\"limit\": " << limit << ", "
+              << "\"primes_count\": " << count << ", "
+              << "\"time_seconds\": " << time_taken_seconds
+              << " }" << std::endl;
 
     return 0;
 }

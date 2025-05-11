@@ -1,4 +1,3 @@
-\
 function sieveOfEratosthenes(limit) {
     const primes = [];
     const isPrime = new Array(limit + 1).fill(true);
@@ -25,7 +24,7 @@ let limit;
 if (nArg) {
     limit = parseInt(nArg, 10);
     if (isNaN(limit) || limit < 0) {
-        console.error("Ошибка: Аргумент должен быть положительным целым числом.");
+        console.log(JSON.stringify({error: "Ошибка: Аргумент должен быть положительным целым числом."}));
         process.exit(1);
     }
 } else {
@@ -37,5 +36,10 @@ const primeNumbers = sieveOfEratosthenes(limit);
 const diff = process.hrtime(startTime);
 const timeTaken = diff[0] + diff[1] / 1e9; // seconds
 
-console.log(`JavaScript Sieve up to ${limit}: ${primeNumbers.length} primes`);
-console.log(`Time taken: ${timeTaken.toFixed(6)} seconds`);
+const result = {
+    language: "JavaScript",
+    limit: limit,
+    primes_count: primeNumbers.length,
+    time_seconds: parseFloat(timeTaken.toFixed(6))
+};
+console.log(JSON.stringify(result));

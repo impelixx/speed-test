@@ -6,6 +6,7 @@ COPY . .
 RUN cargo build --release
 
 FROM debian:buster-slim
-COPY --from=builder /usr/src/app/target/release/rust_fib /usr/local/bin/app
+# Исправлено имя исполняемого файла с rust_fib на app
+COPY --from=builder /usr/src/app/target/release/app /usr/local/bin/app
 
 ENTRYPOINT ["app"]

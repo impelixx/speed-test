@@ -1,6 +1,8 @@
 use std::time::Instant;
 use std::env;
 use std::process;
+use serde::{Serialize};
+use serde_json;
 
 fn sieve_of_eratosthenes(limit: usize) -> Vec<usize> {
     let mut primes = Vec::new();
@@ -28,6 +30,14 @@ fn sieve_of_eratosthenes(limit: usize) -> Vec<usize> {
     primes
 }
 
+#[derive(Serialize)]
+struct Result {
+    language: String,
+    limit: usize,
+    primes_count: usize,
+    time_seconds: f64,
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let limit: usize;
@@ -36,7 +46,8 @@ fn main() {
         match args[1].parse::<usize>() {
             Ok(num) => limit = num,
             Err(_) => {
-                eprintln!("Ошибка: Аргумент должен быть положительным целым числом.");
+                let error_json = serde_json::json!({ "error": "Аргумент должен быть положительным целым числом." });
+                eprintln!("{}", serde_json::to_string(&error_json).unwrap());
                 process::exit(1);
             }
         }
@@ -49,6 +60,20 @@ fn main() {
     let duration = start_time.elapsed();
     let count = prime_numbers.len();
 
-    println!("Rust Sieve up to {}: {} primes", limit, count);
-    println!("Time taken: {:.6} seconds", duration.as_secs_f64());
+    let result = Result {
+        language: "Rust".to_string(),
+        limit,
+        primes_count: count,
+        time_seconds: duration.as_secs_f64(),
+    };
+
+    match serde_json::to_string(&result) {
+        Ok(json_string) => println!("{}", json_string),
+        Err(e) => {
+            // Should not happen with this struct
+            let error_json = serde_json::json!({ "error": format!("Error serializing JSON: {}", e) });
+            eprintln!("{}", serde_json::to_string(&error_json).unwrap());
+            process::exit(1);
+        }
+    }
 }

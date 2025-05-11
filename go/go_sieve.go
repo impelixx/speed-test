@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -36,13 +37,22 @@ func sieveOfEratosthenes(limit int) []int {
 	return primes
 }
 
+// Result struct for JSON marshalling
+type Result struct {
+	Language    string  `json:"language"`
+	Limit       int     `json:"limit"`
+	PrimesCount int     `json:"primes_count"`
+	TimeSeconds float64 `json:"time_seconds"`
+}
+
 func main() {
 	var limit int
 	if len(os.Args) > 1 {
 		var err error
 		limit, err = strconv.Atoi(os.Args[1])
 		if err != nil || limit < 0 {
-			fmt.Fprintln(os.Stderr, "Ошибка: Аргумент должен быть положительным целым числом.")
+			jsonError, _ := json.Marshal(map[string]string{"error": "Аргумент должен быть положительным целым числом."})
+			fmt.Fprintln(os.Stderr, string(jsonError))
 			os.Exit(1)
 		}
 	} else {
@@ -54,6 +64,18 @@ func main() {
 	duration := time.Since(startTime)
 	count := len(primeNumbers)
 
-	fmt.Printf("Go Sieve up to %d: %d primes\n", limit, count)
-	fmt.Printf("Time taken: %f seconds\n", duration.Seconds())
+	result := Result{
+		Language:    "Go",
+		Limit:       limit,
+		PrimesCount: count,
+		TimeSeconds: duration.Seconds(),
+	}
+
+	jsonOutput, err := json.Marshal(result)
+	if err != nil {
+		// Should not happen with this struct
+		fmt.Fprintln(os.Stderr, "Error marshalling JSON:", err)
+		os.Exit(1)
+	}
+	fmt.Println(string(jsonOutput))
 }
