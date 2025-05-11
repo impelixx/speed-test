@@ -90,7 +90,7 @@ def main():
         "[dim]Running performance tests for different limits...[/]",
         border_style="blue"
     ))
-    limits = list(range(100000, 2000001, 100000))
+    limits = list(range(100000, 10000001, 100000))
     layout = Layout()
     layout.split_column(
         Layout(name="system_stats"),
