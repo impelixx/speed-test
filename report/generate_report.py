@@ -168,52 +168,7 @@ def generate_report():
     report_dir_name = os.path.basename(script_dir)
     actual_chart_filename = os.path.basename(chart_file_path)
     chart_path_for_readme = os.path.join(report_dir_name, actual_chart_filename).replace(os.sep, '/')
-
-    for line in readme_content:
-        if line.strip() == "## Сравнение производительности (Решето Эратосфена)":
-            new_readme_content.append(line)
-            new_readme_content.append("\nНиже приведен график зависимости времени выполнения от предела N для разных языков:\n")
-            new_readme_content.append(f"![Сравнение производительности по пределам N]({chart_path_for_readme})\n\n")
-            section_found = True
-            in_old_plot_section = True
-            continue
-        elif in_old_plot_section:
-            if line.strip().startswith("![") or line.strip().startswith("|"):
-                continue
-            else:
-                in_old_plot_section = False
-                new_readme_content.append(line)
-        else:
-            new_readme_content.append(line)
-
-    if not section_found:
-        new_readme_content.append("\n## Сравнение производительности (Решето Эратосфена)\n")
-        new_readme_content.append("\nНиже приведен график зависимости времени выполнения от предела N для разных языков:\n")
-        new_readme_content.append(f"![Сравнение производительности по пределам N]({chart_path_for_readme})\n\n")
-
-    if 'primes_count' in df.columns:
-        speed_chart_path = os.path.join(script_dir, 'speed_over_limits_chart.png')
-        generate_speed_chart(df, speed_chart_path)
-    else:
-        speed_chart_path = None
-
-    if speed_chart_path:
-        chart_path_for_readme2 = os.path.join(report_dir_name, os.path.basename(speed_chart_path)).replace(os.sep, '/')
-        new_readme_content.append("\nГрафик зависимости скорости (число простых/сек) от предела N для разных языков:\n")
-        new_readme_content.append(f"![Сравнение скорости по пределам N]({chart_path_for_readme2})\n\n")
-
-    try:
-        with open(readme_file_path, 'w', encoding='utf-8') as f:
-            f.writelines(new_readme_content)
-        print(f"README.md обновлен новым графиком: {chart_path_for_readme}")
-    except Exception as e:
-        print(f"Ошибка при обновлении README.md: {e}")
-    limit = 1000
     results = load_test_results(limit)
-    
-    if not results:
-        print(f"No test results found for limit {limit}!")
-        return
     
     generate_performance_chart(results, limit)
     generate_ranking.main()
@@ -225,24 +180,24 @@ def generate_report():
     
     print("Report generation completed!")
 
+def remove_test_files():
+
+    result_files = glob.glob(os.path.join(script_dir, 'test_results-*.json'))
+        
+    if not result_files:
+        print("No test result files found to remove.")
+        return
+        
+    file_count = 0
+    for file_path in result_files:
+        try:
+            os.remove(file_path)
+            file_count += 1
+            print(f"Removed: {file_path}")
+        except Exception as e:
+            print(f"Error removing file {file_path}: {e}")
+        
+    print(f"Successfully removed {file_count} test result files.")
 if __name__ == '__main__':
     generate_report()
-    def remove_test_files():
-
-        result_files = glob.glob(os.path.join(script_dir, 'test_results-*.json'))
-        
-        if not result_files:
-            print("No test result files found to remove.")
-            return
-        
-        file_count = 0
-        for file_path in result_files:
-            try:
-                os.remove(file_path)
-                file_count += 1
-                print(f"Removed: {file_path}")
-            except Exception as e:
-                print(f"Error removing file {file_path}: {e}")
-        
-        print(f"Successfully removed {file_count} test result files.")
     remove_test_files()

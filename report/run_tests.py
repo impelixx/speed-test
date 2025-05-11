@@ -90,7 +90,7 @@ def main():
         "[dim]Running performance tests for different limits...[/]",
         border_style="blue"
     ))
-    limits = list(range(100000, 2000002, 100000))
+    limits = list(range(100000, 2000001, 100000))
     layout = Layout()
     layout.split_column(
         Layout(name="system_stats"),
@@ -117,6 +117,7 @@ def main():
             time.sleep(0.5)
     test_thread.join()
     generate_report.generate_report()
+    generate_report.remove_test_files()
 
 if __name__ == "__main__":
     try:
