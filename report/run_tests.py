@@ -165,7 +165,7 @@ def main():
     layout["test_info"].update(create_test_info_panel())
     with Live(layout, refresh_per_second=2) as live:
         run_all_tests_and_monitor(limits, progress, layout)
-    generate_report.generate_report()
+    # generate_report.generate_report()
 
 if __name__ == "__main__":
     try:

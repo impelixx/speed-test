@@ -124,3 +124,11 @@ if [ $? -eq 0 ]; then
 else
   echo "Ошибка записи всех результатов в $INITIAL_DIR/$results_file. Код ошибки: $?. Убедитесь, что есть права на запись."
 fi
+# Удаление всех собранных образов
+for item in "${languages_compilers[@]}"
+do
+  IFS=':' read -r lang script_name compiler dockerfile <<< "$item"
+  image_name="${lang}-${compiler}-sieve-test"
+  docker rmi "$image_name" > /dev/null 2>&1
+done
+echo "Все временные Docker-образы удалены."
