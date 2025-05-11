@@ -6,6 +6,7 @@ import glob  # Добавлен glob
 import numpy as np
 from typing import Dict, List
 import generate_ranking
+limit = 2000000
 
 # Пути определяются относительно директории, в которой находится скрипт.
 script_dir = os.path.dirname(os.path.abspath(__file__))
