@@ -4,14 +4,14 @@ import subprocess
 import time
 import psutil
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn, TaskProgressColumn
 from rich.panel import Panel
 from rich.live import Live
 from rich.table import Table
 from rich import box
 from datetime import datetime
 from rich.layout import Layout
-from rich.text import Text
+import threading
+import queue
 import re
 import generate_report
 
@@ -45,10 +45,6 @@ def get_system_stats():
         'load_15': load_avg[2],
     }
 
-def make_ascii_progress_bar(percent, width=20):
-    done = int(width * percent / 100)
-    return '[' + '█' * done + '░' * (width - done) + ']'
-
 def create_system_stats_panel(stats=None):
     """Create a compact system statistics panel (one table, no double header)."""
     table = Table(box=box.ROUNDED, show_header=True, title=None)
@@ -70,74 +66,23 @@ def create_system_stats_panel(stats=None):
         table.add_row("Load 1m", f"{stats['load_1']:.2f}")
     return Panel(table, title="System Statistics", border_style="blue")
 
-def create_test_info_panel(test_info=None, percent=0, lang=None, compiler=None, limit=None):
-    """Create a panel with test information, progress bar, language and limit."""
-    table = Table(box=box.ROUNDED, show_header=True)
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", style="green")
-    if test_info is None:
-        for key in ["Limit", "Test", "Start Time", "Status", "Duration", "Memory Usage", "CPU Usage", "Language", "Compiler"]:
-            table.add_row(key, "-")
-    else:
-        for key, value in test_info.items():
-            table.add_row(key, str(value))
-        if lang is not None:
-            table.add_row("Language", lang)
-        if compiler is not None:
-            table.add_row("Compiler", compiler)
-        if limit is not None:
-            table.add_row("Current Limit", str(limit))
-        table.add_row("Progress", f"{percent:.1f}% {make_ascii_progress_bar(percent)}")
-    return Panel(table, title="Test Progress", border_style="green")
+def create_logs_panel(log_lines):
+    log_text = "".join(log_lines[-20:]) if log_lines else "(пока нет вывода)"
+    return Panel(log_text, title="Тесты: вывод и логи", border_style="magenta")
 
-def parse_lang_compiler_from_line(line):
-    # Пример: Тестирование python (python)...
-    m = re.match(r"Тестирование\s+(\w+)\s*\(([^)]+)\)", line)
-    if m:
-        return m.group(1), m.group(2)
-    return None, None
-
-def run_all_tests_and_monitor(limits, progress, layout):
-    start_time = time.time()
-    test_info = {
-        "Start Time": datetime.now().strftime("%H:%M:%S"),
-        "Status": "Running",
-        "Duration": "0.00s"
-    }
-    lang = compiler = None
-    current_limit = None
-    total_tests = 12 * len(limits)
-    current_test = 0
-    process = subprocess.Popen(['./run_all_tests.sh', str(limits[-1])],
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT,
-                               universal_newlines=True,
-                               bufsize=1)
-    output_lines = []
-    while True:
-        stats = get_system_stats()
-        # Read next line from process
-        line = process.stdout.readline() if process.stdout else ''
-        if line:
-            output_lines.append(line)
-            l, c = parse_lang_compiler_from_line(line)
-            if l and c:
-                lang, compiler = l, c
-                current_test += 1
-                current_limit = limits[current_test-1] if current_test-1 < len(limits) else None
-        # Update progress
-        percent = 100 * (current_test / total_tests) if total_tests else 0
-        layout["system_stats"].update(create_system_stats_panel(stats))
-        layout["test_info"].update(create_test_info_panel(test_info, percent=percent, lang=lang, compiler=compiler, limit=current_limit))
-        if not line and process.poll() is not None:
-            break
-        time.sleep(0.2)
-    # Print remaining output
-    for line in process.stdout:
-        output_lines.append(line)
-    process.stdout.close()
-    process.wait()
-    return output_lines
+def run_all_tests_and_stream_logs(limits, log_queue, done_flag):
+    for limit in limits:
+        log_queue.put(f"\n[bold yellow]=== Тесты для лимита N = {limit} ===[/bold yellow]\n")
+        process = subprocess.Popen(['./run_all_tests.sh', str(limit)],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT,
+                                   universal_newlines=True,
+                                   bufsize=1)
+        for line in process.stdout:
+            log_queue.put(line)
+        process.stdout.close()
+        process.wait()
+    done_flag.set()
 
 def main():
     console.print(Panel.fit(
@@ -146,25 +91,31 @@ def main():
         border_style="blue"
     ))
     limits = list(range(1, 2000002, 1000))
-    progress = Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
-        TimeElapsedColumn(),
-        console=console
-    )
-    progress.add_task("[cyan]Overall Progress", total=100)
-    progress.add_task("[green]Current Test", total=100)
     layout = Layout()
     layout.split_column(
         Layout(name="system_stats"),
-        Layout(name="test_info")
+        Layout(name="logs")
     )
     layout["system_stats"].update(create_system_stats_panel())
-    layout["test_info"].update(create_test_info_panel())
+    layout["logs"].update(create_logs_panel([]))
+    log_queue = queue.Queue()
+    done_flag = threading.Event()
+    log_lines = []
+    # Поток для тестов
+    test_thread = threading.Thread(target=run_all_tests_and_stream_logs, args=(limits, log_queue, done_flag))
+    test_thread.start()
+    # Основной поток: обновление live-интерфейса
     with Live(layout, refresh_per_second=2) as live:
-        run_all_tests_and_monitor(limits, progress, layout)
+        while not done_flag.is_set() or not log_queue.empty():
+            # Обновляем системную статистику
+            stats = get_system_stats()
+            layout["system_stats"].update(create_system_stats_panel(stats))
+            # Обновляем логи
+            while not log_queue.empty():
+                log_lines.append(log_queue.get())
+            layout["logs"].update(create_logs_panel(log_lines))
+            time.sleep(0.5)
+    test_thread.join()
     # generate_report.generate_report()
 
 if __name__ == "__main__":
