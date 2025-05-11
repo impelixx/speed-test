@@ -1,5 +1,5 @@
 pandas
 matplotlib
 rich
-putils
+psutil
 numpy
