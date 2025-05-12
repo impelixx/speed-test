@@ -8,15 +8,11 @@ from typing import Dict, List
 import generate_ranking
 limit = 2000000
 
-# Пути определяются относительно директории, в которой находится скрипт.
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Имя файла для нового графика
 chart_file_path = os.path.join(script_dir, 'performance_over_limits_chart.png')
-# Путь к README.md в корневой директории проекта
 readme_file_path = os.path.join(script_dir, '..', 'README.md')
 
-# Убедимся, что директория для выходных файлов существует
 os.makedirs(script_dir, exist_ok=True)
 
 def load_test_results(limit: int) -> List[Dict]:
@@ -30,45 +26,37 @@ def load_test_results(limit: int) -> List[Dict]:
 
 def generate_performance_chart(results: List[Dict], limit: int):
     """Generate performance comparison chart."""
-    # Filter out failed tests
     valid_results = [r for r in results if 'time_seconds' in r and not r.get('error')]
     
-    # Sort by time
     sorted_results = sorted(valid_results, key=lambda x: float(x['time_seconds']))
     
-    # Prepare data for plotting
     languages = [r['language'] for r in sorted_results]
     times = [float(r['time_seconds']) for r in sorted_results]
     
-    # Create the plot
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(20, 10))
     bars = plt.bar(languages, times)
     
-    # Customize the plot
     plt.title(f'Сравнение производительности (предел N = {limit})')
     plt.xlabel('Язык программирования')
     plt.ylabel('Время выполнения (с)')
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     
-    # Add value labels on top of bars
     for bar in bars:
         height = bar.get_height()
         plt.text(bar.get_x() + bar.get_width()/2., height,
                 f'{height:.9f}',
                 ha='center', va='bottom')
     
-    # Save the plot
     plt.savefig('performance_over_limits_chart.png')
     plt.close()
 
 def generate_speed_chart(df, chart_file_path):
     """Генерирует график зависимости скорости (число простых/сек) от лимита для каждого языка."""
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(20, 10))
     languages = df['language'].unique()
     for lang in sorted(languages):
         lang_df = df[df['language'] == lang].sort_values(by='limit')
-        # Только те точки, где есть primes_count
         if not lang_df.empty and 'primes_count' in lang_df:
             lang_df = lang_df.dropna(subset=['primes_count', 'time_seconds'])
             if not lang_df.empty:
@@ -87,11 +75,6 @@ def generate_speed_chart(df, chart_file_path):
     print(f"График скорости сохранен в {chart_file_path}")
 
 def generate_report():
-    """
-    Собирает данные из всех файлов test_results-*.json,
-    генерирует линейный график сравнения производительности по пределам N
-    и обновляет README.md.
-    """
     all_data = []
     result_files = glob.glob(os.path.join(script_dir, 'test_results-*.json'))
 
@@ -119,7 +102,7 @@ def generate_report():
 
         for entry in data_from_file:
             if 'error' not in entry and all(k in entry for k in ['language', 'time_seconds']):
-                entry['limit'] = sieve_limit  # Лимит всегда из имени файла
+                entry['limit'] = sieve_limit 
                 all_data.append(entry)
             else:
                 print(f"Пропуск записи с ошибкой или отсутствующими ключами в файле {file_path}: {entry.get('language', 'N/A')} для предела {entry.get('limit', sieve_limit)}")
@@ -135,8 +118,7 @@ def generate_report():
         df['primes_count'] = pd.to_numeric(df['primes_count'], errors='coerce')
     df.dropna(subset=['time_seconds', 'limit', 'language'], inplace=True)
 
-    # --- Генерация линейного графика ---
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(20, 10))
     languages = df['language'].unique()
     for lang in sorted(languages):
         lang_df = df[df['language'] == lang].sort_values(by='limit')
